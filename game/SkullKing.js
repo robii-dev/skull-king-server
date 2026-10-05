@@ -26,7 +26,8 @@ const SkullKingGame = {
   },
 
   moves: {
-    definirNom: ({ G }, idJoueur, nom) => {
+    definirNom: ({ G, playerID }, idJoueur, nom) => {
+      if (playerID !== idJoueur) return INVALID_MOVE;
       if (G.nomsJoueurs[idJoueur]) return INVALID_MOVE;
       if (!nom || nom.trim() === '') return INVALID_MOVE;
       G.nomsJoueurs[idJoueur] = nom.trim();
@@ -117,13 +118,15 @@ const SkullKingGame = {
       G.partieTerminee = true;
     },
 
-    annoncer: ({ G }, idJoueur, nombre) => {
+    annoncer: ({ G, playerID }, idJoueur, nombre) => {
+      if (playerID !== idJoueur) return INVALID_MOVE;
       if (G.annoncesRevelees) return INVALID_MOVE;
       if (G.pretPourAnnonce[idJoueur]) return INVALID_MOVE;
       G.annonces[idJoueur] = nombre;
     },
 
-    validerAnnonce: ({ G, ctx }, idJoueur) => {
+    validerAnnonce: ({ G, playerID }, idJoueur) => {
+      if (playerID !== idJoueur) return INVALID_MOVE;
       if (G.annoncesRevelees) return INVALID_MOVE;
       if (G.annonces[idJoueur] === null) return INVALID_MOVE;
       
@@ -139,7 +142,8 @@ const SkullKingGame = {
       }
     },
 
-    jouerCarte: ({ G, ctx }, idJoueur, carteId, tigresseChoix) => {
+    jouerCarte: ({ G, ctx, playerID }, idJoueur, carteId, tigresseChoix) => {
+      if (playerID !== idJoueur) return INVALID_MOVE;
       if (!G.annoncesRevelees) return INVALID_MOVE;
       if (G.pouvoirEnAttente !== null) return INVALID_MOVE;
       if (idJoueur !== G.joueurActuel) return INVALID_MOVE;
@@ -177,8 +181,10 @@ const SkullKingGame = {
       }
     },
 
-    resoudrePouvoirHarry: ({ G }, idJoueur, modification) => {
-      if (!G.pouvoirEnAttente || G.pouvoirEnAttente.nom !== 'Harry') return;
+    resoudrePouvoirHarry: ({ G, playerID }, idJoueur, modification) => {
+      if (!G.pouvoirEnAttente || G.pouvoirEnAttente.nom !== 'Harry') return INVALID_MOVE;
+      if (playerID !== idJoueur || G.pouvoirEnAttente.idJoueur !== idJoueur) return INVALID_MOVE;
+
       const ancienneAnnonce = G.annonces[idJoueur];
       if (ancienneAnnonce === null) {
         G.pouvoirEnAttente = null;
@@ -191,8 +197,9 @@ const SkullKingGame = {
       G.pouvoirEnAttente = null;
     },
 
-    resoudrePouvoirBenjamin: ({ G }, idJoueurBenjamin, idJoueurCible, idCarteMoi, idCarteCible) => {
-      if (!G.pouvoirEnAttente || G.pouvoirEnAttente.nom !== 'Benjamin') return;
+    resoudrePouvoirBenjamin: ({ G, playerID }, idJoueurBenjamin, idJoueurCible, idCarteMoi, idCarteCible) => {
+      if (!G.pouvoirEnAttente || G.pouvoirEnAttente.nom !== 'Benjamin') return INVALID_MOVE;
+      if (playerID !== idJoueurBenjamin || G.pouvoirEnAttente.idJoueur !== idJoueurBenjamin) return INVALID_MOVE;
       
       const mainMoi = G.mains[idJoueurBenjamin];
       const mainCible = G.mains[idJoueurCible];
@@ -214,15 +221,18 @@ const SkullKingGame = {
       G.pouvoirEnAttente = null;
     },
 
-    resoudrePouvoirRosie: ({ G }, idJoueurChoisi) => {
-      if (!G.pouvoirEnAttente || G.pouvoirEnAttente.nom !== 'Rosie') return;
+    resoudrePouvoirRosie: ({ G, playerID }, idJoueurChoisi) => {
+      if (!G.pouvoirEnAttente || G.pouvoirEnAttente.nom !== 'Rosie') return INVALID_MOVE;
+      if (playerID !== G.pouvoirEnAttente.idJoueur) return INVALID_MOVE;
+
       G.joueurActuel = idJoueurChoisi;
       G.joueurQuiCommence = idJoueurChoisi;
       G.pouvoirEnAttente = null;
     },
 
-    resoudrePouvoirBetsy: ({ G }, idJoueurBetsy, idCartePli, idCarteMain) => {
-      if (!G.pouvoirEnAttente || G.pouvoirEnAttente.nom !== 'Betsy') return;
+    resoudrePouvoirBetsy: ({ G, playerID }, idJoueurBetsy, idCartePli, idCarteMain) => {
+      if (!G.pouvoirEnAttente || G.pouvoirEnAttente.nom !== 'Betsy') return INVALID_MOVE;
+      if (playerID !== idJoueurBetsy || G.pouvoirEnAttente.idJoueur !== idJoueurBetsy) return INVALID_MOVE;
 
       const entryPli = G.dernierPliCartes.find(function(e) { return e.carte.id === idCartePli; });
       const carteMain = G.mains[idJoueurBetsy].find(function(c) { return c.id === idCarteMain; });
@@ -239,18 +249,24 @@ const SkullKingGame = {
       G.pouvoirEnAttente = null;
     },
 
-    fermerJuanita: ({ G }) => {
+    fermerJuanita: ({ G, playerID }) => {
+      if (!G.revelationJuanita) return;
+      if (playerID !== G.revelationJuanita.idJoueur) return INVALID_MOVE;
       G.revelationJuanita = null;
     },
 
-    resoudrePouvoirPascal: ({ G }, idJoueur, montant) => {
-      if (!G.pouvoirEnAttente || G.pouvoirEnAttente.nom !== 'Pascal') return;
+    resoudrePouvoirPascal: ({ G, playerID }, idJoueur, montant) => {
+      if (!G.pouvoirEnAttente || G.pouvoirEnAttente.nom !== 'Pascal') return INVALID_MOVE;
+      if (playerID !== idJoueur || G.pouvoirEnAttente.idJoueur !== idJoueur) return INVALID_MOVE;
+
       G.pariManche[idJoueur] = montant;
       G.pouvoirEnAttente = null;
     },
 
-    resoudrePouvoirLucieChoisirCible: ({ G }, idJoueurLucie, idJoueurCible) => {
-      if (!G.pouvoirEnAttente || G.pouvoirEnAttente.nom !== 'Lucie') return;
+    resoudrePouvoirLucieChoisirCible: ({ G, playerID }, idJoueurLucie, idJoueurCible) => {
+      if (!G.pouvoirEnAttente || G.pouvoirEnAttente.nom !== 'Lucie') return INVALID_MOVE;
+      if (playerID !== idJoueurLucie || G.pouvoirEnAttente.idJoueur !== idJoueurLucie) return INVALID_MOVE;
+
       G.revelationLucie = {
         idJoueurLucie: idJoueurLucie,
         idJoueurCible: idJoueurCible,
@@ -259,12 +275,15 @@ const SkullKingGame = {
       G.pouvoirEnAttente = null;
     },
 
-    fermerLucie: ({ G }) => {
+    fermerLucie: ({ G, playerID }) => {
+      if (!G.revelationLucie) return;
+      if (playerID !== G.revelationLucie.idJoueurLucie) return INVALID_MOVE;
       G.revelationLucie = null;
     },
 
-    piocherWill: ({ G }, idJoueur) => {
-      if (!G.pouvoirEnAttente || G.pouvoirEnAttente.nom !== 'Will' || G.pouvoirEnAttente.etape !== 'pioche') return;
+    piocherWill: ({ G, playerID }, idJoueur) => {
+      if (!G.pouvoirEnAttente || G.pouvoirEnAttente.nom !== 'Will' || G.pouvoirEnAttente.etape !== 'pioche') return INVALID_MOVE;
+      if (playerID !== idJoueur || G.pouvoirEnAttente.idJoueur !== idJoueur) return INVALID_MOVE;
       
       const nbAPiocher = Math.min(2, G.piocheRestante.length);
       const cartesPiochees = G.piocheRestante.splice(0, nbAPiocher);
@@ -273,8 +292,9 @@ const SkullKingGame = {
       G.pouvoirEnAttente.etape = 'defausse';
     },
 
-    defausserWill: ({ G }, idJoueur, idCarte1, idCarte2) => {
-      if (!G.pouvoirEnAttente || G.pouvoirEnAttente.nom !== 'Will' || G.pouvoirEnAttente.etape !== 'defausse') return;
+    defausserWill: ({ G, playerID }, idJoueur, idCarte1, idCarte2) => {
+      if (!G.pouvoirEnAttente || G.pouvoirEnAttente.nom !== 'Will' || G.pouvoirEnAttente.etape !== 'defausse') return INVALID_MOVE;
+      if (playerID !== idJoueur || G.pouvoirEnAttente.idJoueur !== idJoueur) return INVALID_MOVE;
       
       G.mains[idJoueur] = G.mains[idJoueur].filter(function(c) {
         return c.id !== idCarte1 && c.id !== idCarte2;
@@ -300,11 +320,39 @@ const SkullKingGame = {
       }
     });
 
-    return Object.assign({}, G, { mains: mainsFiltrees });
+    let annoncesFiltrees = G.annonces;
+    if (!G.annoncesRevelees) {
+      annoncesFiltrees = {};
+      Object.keys(G.annonces).forEach(function(id) {
+        if (id === playerID) {
+          annoncesFiltrees[id] = G.annonces[id];
+        } else {
+          annoncesFiltrees[id] = null;
+        }
+      });
+    }
+
+    let revelationJuanitaFiltree = G.revelationJuanita;
+    if (revelationJuanitaFiltree && String(revelationJuanitaFiltree.idJoueur) !== String(playerID)) {
+      revelationJuanitaFiltree = null;
+    }
+
+    let revelationLucieFiltree = G.revelationLucie;
+    if (revelationLucieFiltree && String(revelationLucieFiltree.idJoueurLucie) !== String(playerID)) {
+      revelationLucieFiltree = null;
+    }
+
+    return Object.assign({}, G, {
+      mains: mainsFiltrees,
+      annonces: annoncesFiltrees,
+      revelationJuanita: revelationJuanitaFiltree,
+      revelationLucie: revelationLucieFiltree,
+    });
   },
+
   turn: {
     activePlayers: ActivePlayers.ALL,
-    },
+  },
 };
 
 function resoudreEtEnregistrerPli(G) {
